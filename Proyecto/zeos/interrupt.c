@@ -47,12 +47,27 @@ void update_blocked_time() {
   }
 }
 
+void dumpScreen() {
+  Word* screen = (Word *)0xb8000;
+  char* content = (char*)(current()->screen_page);
+  Word color = 0x07;
+
+  for (int i = 0; i < 80*25; ++i) {
+    screen[i] = (color << 8) | content[i];
+  }
+}
+
 void clock_routine()
 {
   zeos_show_clock();
   zeos_ticks ++;
   
+  //Per gestió Keyboard
   update_blocked_time();
+
+  //Per gestió pantalla
+    //La primera entrada a clock_routine encara no estem executant init (Això feia que screen_page no estigués inicialitzat) -> Solucio?
+  if (current()->PID != -1 && current()->screen_page != (void*)-1) dumpScreen();
 
   schedule();
 }
