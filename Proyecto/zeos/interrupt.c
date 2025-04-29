@@ -11,6 +11,8 @@
 
 #include <zeos_interrupt.h>
 
+#include <utils.h>
+
 Gate idt[IDT_ENTRIES];
 Register    idtR;
 
@@ -77,8 +79,12 @@ void keyboard_routine()
   unsigned char c = inb(0x60);
   
   if (!(c&0x80)) {
-    keys[c] = 1;
-    printc_xy(0, 0, char_map[c&0x7f]);
+    keys[c&0x7f] = 1;
+    //printc_xy(0, 0, char_map[c&0x7f]);
+  }
+  else if ((c&0x80)) {
+    keys[c&0x7f] = 0;
+    //printc_xy(0, 0, char_map[c&0x7f]);
   }
   
 }

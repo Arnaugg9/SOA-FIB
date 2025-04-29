@@ -229,11 +229,15 @@ void init_freequeue()
   }
 }
 
+extern char keys[128];
 void init_sched()
 {
   init_freequeue();
   INIT_LIST_HEAD(&readyqueue);
   INIT_LIST_HEAD(&blocked);
+
+  //Inicialització del vector keys
+  for (int i = 0; i < 128; ++i) keys[i] = 0;
 }
 
 struct task_struct* current()

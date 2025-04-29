@@ -248,11 +248,6 @@ int sys_GetKeyboardState(char* keyboard) {
   //Copiem el vector de sistema al vector d'usuari
   copy_to_user(keys, keyboard, 128);
 
-  //Tornem a posar tot el vector de sistema a 0
-  for (int i = 0; i < 128; ++i) {
-    keys[i] = 0;
-  }
-
   return 0;
 }
 
@@ -261,7 +256,7 @@ int sys_pause (int miliseconds) {
   //Comprobem que el temps sigui > 0
   if (miliseconds < 0) return -EINVAL;
 
-  current()->pause_time = miliseconds;
+  current()->pause_time = miliseconds*0.18;
   update_process_state_rr(current(), &blocked);
   sched_next_rr();
 
@@ -277,7 +272,7 @@ void* sys_StartScreen() {
 
   //Busquem nou frame (si no hi ha cap error)
   int frame = alloc_frame();
-  if (frame < 0) return -EAGAIN;
+  if (frame < 0) return (void*)-EAGAIN;
 
   //Associem frame a dir lògica
   page_table_entry* tp = get_PT(current());

@@ -31,6 +31,7 @@ int __attribute__ ((__section__(".text.main")))
   for (int i = 0; i < 128; ++i) keyboard[i] = 0;
   write(1, "\nHello!\n", 8);
 
+  
   char* screen = (char*)StartScreen();
   if (screen == (void*)-1) perror("Error al acceder a la pantalla");
   else {
@@ -38,7 +39,6 @@ int __attribute__ ((__section__(".text.main")))
         screen[i] = ' ';
     }
   }
-  int pos = 0;
 
 
   //TEST pause
@@ -86,6 +86,21 @@ int __attribute__ ((__section__(".text.main")))
       }
     */
 
+    screen[0] = 'k';
+    screen[1] = 'e';
+    screen[2] = 'y';
+    screen[3] = 's';
+    screen[4] = ' ';
+    screen[5] = 'p';
+    screen[6] = 'r';
+    screen[7] = 'e';
+    screen[8] = 's';
+    screen[9] = 's';
+    screen[10] = 'e';
+    screen[11] = 'd';
+    screen[12] = ':';
+    screen[13] = ' ';
+
 
   while(1) { 
 
@@ -117,19 +132,20 @@ int __attribute__ ((__section__(".text.main")))
       }
 
       pause(1000);  
-    */   
+    */
 
     
     //TEST GetKeyboarState, pause i StartScreen
       //Si aqui fessim un fork no funcionaria pq screen guardaria una pos d'un altre proces, es un problema?
-      if (GetKeyboardState(keyboard) < 0) perror("Error al obtener el estado del teclado");
+      
+      if (GetKeyboardState(keyboard) < 0) perror();
+      int pos = 14;
 
       for (int i = 0; i < 128; ++i) {
-        if (keyboard[i] == 1) {
-          screen[pos++] = char_map2[i];
-          if (pos >= 80*25) pos = 0;
-        }
+        if (keyboard[i] == 1) screen[pos+=2] = char_map2[i];
       }
+      for (int i = pos+1; i < 128; ++i) screen[i] = ' ';
+
 
   }
 
