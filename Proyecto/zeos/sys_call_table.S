@@ -4,14 +4,14 @@
 ENTRY (sys_call_table)
 	.long sys_ni_syscall	//0
 	.long sys_exit		//1
-	.long sys_fork		//2
+	.long sys_clone		//2
 	.long sys_ni_syscall	//3
 	.long sys_write		//4
 	.long sys_GetKeyboardState	//5
 	.long sys_pause	//6
 	.long sys_StartScreen	//7
-	.long sys_ni_syscall	//8
-	.long sys_ni_syscall	//9
+	.long sys_SetPriority	//8
+	.long sys_pthread_exit	//9
 	.long sys_gettime	//10
 	.long sys_ni_syscall	//11
 	.long sys_ni_syscall	//12

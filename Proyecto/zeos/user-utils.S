@@ -60,8 +60,11 @@ ENTRY(getpid)
 ENTRY(fork)
 	pushl %ebp
 	movl %esp, %ebp
+	pushl %ebx
+	xorl %ebx, %ebx			//A sys_clone le pasas de primer parametro CLONE_PROCESS (0)
 	movl $2, %eax
 	call syscall_sysenter
+	popl %ebx
 	test %eax, %eax
 	js nok	// if (eax < 0) -->
 	popl %ebp
@@ -135,5 +138,46 @@ ENTRY(StartScreen)
 	popl %ebx
 	test %eax, %eax
 	js nok	// if (eax < 0) -> 
+	popl %ebp
+	ret
+
+ENTRY(clone)
+	pushl %ebp
+	movl %esp, %ebp
+	pushl %ebx		// Save EBX, ESI and EDI if modified
+	pushl %esi
+	movl $2 ,%eax
+	movl 0x8(%ebp), %ebx
+	movl 0xC(%ebp), %ecx
+	movl 0x10(%ebp), %edx
+	movl 0x14(%ebp), %esi
+	call syscall_sysenter
+	popl %esi
+	popl %ebx
+	test %eax, %eax
+	js nok	// if (eax < 0) -> 
+	popl %ebp
+	ret
+
+ENTRY(SetPriority)
+	pushl %ebp
+	movl %esp, %ebp
+	pushl %ebx
+	movl 0x8(%ebp), %ebx 
+	movl $8, %eax
+	call syscall_sysenter
+	popl %ebx
+	test %eax, %eax
+	js nok
+	popl %ebp
+	ret
+
+ENTRY(pthread_exit)
+	pushl %ebp
+	movl %esp, %ebp
+	movl $9, %eax
+	call syscall_sysenter
+	test %eax, %eax
+	js nok
 	popl %ebp
 	ret

@@ -26,6 +26,17 @@ struct task_struct {
   struct stats p_stats;		/* Process stats */
   int pause_time;       //Temps que li queda a un procés blocked per desbloquejar
   void* screen_page;    //Punter a la direccio de la pagina compartida de la pantalla
+
+  //Caracteristiques afegides per fer threads
+  int TID;
+  int next_TID;
+  int nthreads;                       //Nombre de threads del procés
+  int priority;
+  void* first_stack_page;
+  int user_stack_pages;               //Numero de pagines del stack
+  struct task_struct* main_thread;    //Apunta al thread principal
+  struct list_head threads_list;      //Lista amb els threads del procés
+  struct list_head sibling;          //Enllaç del pare als fills (node per vincular a thread_list del main)
 };
 
 union task_union {
