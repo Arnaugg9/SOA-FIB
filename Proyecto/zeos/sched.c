@@ -251,6 +251,9 @@ void init_sched()
 
   //Inicialització del vector keys
   for (int i = 0; i < 128; ++i) keys[i] = 0;
+
+  //Inicialització del vector de semafors
+  init_semaphores();
 }
 
 struct task_struct* current()
@@ -287,4 +290,12 @@ void force_task_switch()
   update_process_state_rr(current(), &readyqueue);
 
   sched_next_rr();
+}
+
+void init_semaphores() {
+  for (int i = 0; i < NR_SEMAPHORES; ++i) {
+    semaphores[i].sem_id = -1;
+    semaphores[i].counter = 0;
+    semaphores[i].owner = -1;
+  }
 }

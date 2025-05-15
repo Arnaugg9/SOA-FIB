@@ -147,9 +147,9 @@ ENTRY(clone)
 	pushl %ebx		// Save EBX, ESI and EDI if modified
 	pushl %esi
 	movl $2 ,%eax
-	movl 0x8(%ebp), %ebx
-	movl 0xC(%ebp), %ecx
-	movl 0x10(%ebp), %edx
+	movl 0x8(%ebp), %ebx		//what
+	movl 0xC(%ebp), %ecx		//param
+	movl 0x10(%ebp), %edx		//stack_size
 	movl 0x14(%ebp), %esi
 	call syscall_sysenter
 	popl %esi
@@ -163,7 +163,7 @@ ENTRY(SetPriority)
 	pushl %ebp
 	movl %esp, %ebp
 	pushl %ebx
-	movl 0x8(%ebp), %ebx 
+	movl 0x8(%ebp), %ebx 		//priority
 	movl $8, %eax
 	call syscall_sysenter
 	popl %ebx
@@ -177,6 +177,59 @@ ENTRY(pthread_exit)
 	movl %esp, %ebp
 	movl $9, %eax
 	call syscall_sysenter
+	test %eax, %eax
+	js nok
+	popl %ebp
+	ret
+
+
+ENTRY(sem_init)
+	pushl %ebp
+	movl %esp, %ebp
+	pushl %ebx
+	movl 0x8(%ebp), %ebx 		//value
+	movl $14, %eax
+	call syscall_sysenter
+	popl %ebx
+	test %eax, %eax
+	js nok
+	popl %ebp
+	ret
+
+ENTRY(sem_wait)
+	pushl %ebp
+	movl %esp, %ebp
+	pushl %ebx
+	movl 0x8(%ebp), %ebx 		//sem_id
+	movl $15, %eax
+	call syscall_sysenter
+	popl %ebx
+	test %eax, %eax
+	js nok
+	popl %ebp
+	ret
+
+ENTRY(sem_post)
+	pushl %ebp
+	movl %esp, %ebp
+	pushl %ebx
+	movl 0x8(%ebp), %ebx 		//sem_id
+	movl $16, %eax
+	call syscall_sysenter
+	popl %ebx
+	test %eax, %eax
+	js nok
+	popl %ebp
+	ret
+
+ENTRY(sem_destroy)
+	pushl %ebp
+	movl %esp, %ebp
+	pushl %ebx
+	movl 0x8(%ebp), %ebx 		//sem_id
+	movl $17, %eax
+	call syscall_sysenter
+	popl %ebx
 	test %eax, %eax
 	js nok
 	popl %ebp

@@ -24,10 +24,10 @@
  .long sys_ni_syscall
  .long sys_ni_syscall
  .long sys_yield
- .long sys_ni_syscall
- .long sys_ni_syscall
- .long sys_ni_syscall
- .long sys_ni_syscall
+ .long sys_sem_init
+ .long sys_sem_wait
+ .long sys_sem_post
+ .long sys_sem_destroy
  .long sys_ni_syscall
  .long sys_ni_syscall
  .long sys_getpid

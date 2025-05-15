@@ -198,6 +198,71 @@ void test_exit_from_thread() {
 }
 
 
+//Tests de semafors
+int sem_id;
+
+char aux[1];
+void *sem_thread(void *arg) {
+  char id = *(char*)arg;
+  aux[0] = id;
+  //buff[0] = id;   // --> Si es descomenta (i comenta la posterior), en estar fora de la zona d'exclusió mutua hi ha problemes de condicio de carrera
+  
+  write(1, "Thread trying to enter critical section: ", 41);
+  write(1, aux, 1);
+  write(1, "\n", 1);
+  
+  if (sem_wait(sem_id) == 0) {
+    buff[0] = id;
+    write(1, "Thread in critical section: ", 28);
+    write(1, buff, 1);
+    write(1, "\n", 1);
+    
+    pause(50000);
+
+    write(1, "Thread leaving critical section: ", 33);
+    write(1, buff, 1);
+    write(1, "\n", 1);
+
+    sem_post(sem_id);
+  } else {
+    write(1, "Thread failed to acquire semaphore\n", 34);
+  }
+
+  pthread_exit();
+}
+
+void test_semaphores() {
+  write(1, "\n--- Testing Semaphores ---\n", 28);
+
+  sem_id = sem_init(1); // inicializa con valor 1 (mutex)
+  if (sem_id < 0) {
+    write(1, "Failed to initialize semaphore\n", 31);
+    return;
+  }
+
+  // Crea varias letras distintas para identificar a los hilos
+  char ids[3] = { 'A', 'B', 'C' };
+
+  for (int i = 0; i < 3; ++i) {
+    if (clone(CLONE_THREAD, sem_thread, &ids[i], 2048) < 0) {
+      write(1, "Failed to create thread\n", 24);
+    }
+    pause(10); // Pequeño delay para mezclar la ejecución
+  }
+
+  // Espera a que los hilos terminen
+  sem_wait(sem_id);
+  write(1, "All threads finished\n", 21);
+
+  // Destruye el semáforo
+  if (sem_destroy(sem_id) != 0) {
+    write(1, "Failed to destroy semaphore\n", 28);
+  } else {
+    write(1, "Semaphore destroyed successfully\n", 33);
+  }
+
+  write(1, "--- End of Semaphore Test ---\n\n", 32);
+}
 
 int __attribute__ ((__section__(".text.main")))
   main(void)
@@ -217,15 +282,17 @@ int __attribute__ ((__section__(".text.main")))
   }
 
 
-  test_simple_clone();
-  test_multiple_threads();
-  test_priority();
+  //test_simple_clone();
+  //test_multiple_threads();
+  //test_priority();
 
   // thread hace fork
-  test_clone_and_fork();
+  //test_clone_and_fork();
+
+  test_semaphores();
 
 
-
+/*
   int pid = fork();
   if (pid < 0) perror();
   else if (pid > 0) {
@@ -244,4 +311,9 @@ int __attribute__ ((__section__(".text.main")))
 
     }
   }
+*/
+
+while(1) {
+  ;
+}
 }

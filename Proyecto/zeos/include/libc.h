@@ -35,8 +35,13 @@ void* StartScreen();
 
 int clone(int what, void *(*func)(void*), void *param, int stack_size);
 
-//int SetPriority(int priority);
+int SetPriority(int priority);
 
-//int pthread_exit();
+int pthread_exit();
+
+int sem_init(int value);
+int sem_wait(int sem_id);
+int sem_post(int sem_id);
+int sem_destroy(int sem_id);
 
 #endif  /* __LIBC_H__ */

@@ -573,3 +573,86 @@ int sys_pthread_exit() {
 
 	return 0;
 }
+
+//Semafors
+struct Semaphore semaphores[NR_SEMAPHORES];
+int sys_sem_init(int count) {
+  //Comprovem que count sigui > 0
+  if (count < 0) return -EINVAL;
+
+  for (int i = 0; i < NR_SEMAPHORES; ++i) {
+    //si es cumpleix agafem aquest com a semàfor a inicialitzar
+    if (semaphores[i].sem_id < 0) {
+      semaphores[i].sem_id = i;
+      semaphores[i].counter = count;
+      semaphores[i].owner = current()->PID;
+      INIT_LIST_HEAD(&(semaphores[i].queue));
+      return i;
+    }
+  }
+  //no tenim prou espai pel semafor
+  return -ENAVAIL;
+}
+
+int sys_sem_wait(int sem_id) {
+  //Comprovem que sigui un id vàlid
+  if (sem_id < 0 || sem_id > NR_SEMAPHORES) return -EINVAL;
+
+  //Comprovem que el proces sigui owner del semafor, per ser això cert necessariament el semafor ja esta inicialitzat
+  struct Semaphore *s = &(semaphores[sem_id]);
+  if (current()->PID != s->owner) return -EACCES;
+
+  if (s->counter <= 0) {
+    list_add_tail(&(current()->list), &(s->queue));
+    sched_next_rr();
+  }
+  else --(s->counter);
+
+  return 0;
+}
+
+int sys_sem_post(int sem_id) {
+  //Comprovem que sigui un id vàlid
+  if (sem_id < 0 || sem_id > NR_SEMAPHORES) return -EINVAL;
+
+  //Comprovem que el proces sigui owner del semafor, per ser això cert necessariament el semafor ja esta inicialitzat
+  struct Semaphore *s = &(semaphores[sem_id]);
+  if (current()->PID != s->owner) return -EACCES;
+
+  //Si la cua esta buida incrementem el contador -> Ara podem tenir un proces més concurrentment
+  if (list_empty(&(s->queue))) ++(s->counter);
+  //Si la cua no es buida cal eliminar el primer element de la cua del semafor i passarlo a ready
+  else {
+    struct list_head *lh_unlocked = list_first(&(s->queue));
+    list_del(lh_unlocked);
+    struct task_struct *ts_unlocked = list_head_to_task_struct(lh_unlocked);
+    update_process_state_rr(ts_unlocked, &readyqueue);
+  }
+  return 0;
+}
+
+int sys_sem_destroy(int sem_id) {
+  //Comprovem que sigui un id vàlid
+  if (sem_id < 0 || sem_id > NR_SEMAPHORES) return -EINVAL;
+
+  //Comprovem que el proces sigui owner del semafor, per ser això cert necessariament el semafor ja esta inicialitzat
+  struct Semaphore *s = &(semaphores[sem_id]);
+  if (current()->PID != s->owner) return -EACCES;
+
+  //Si la cua del semafor no esta buida, posem tots els threads de la cua en ready
+  if (!(list_empty(&(s->queue)))) {
+    struct list_head *pos, *tmp;    
+    list_for_each_safe(pos, tmp, &(s->queue)) {
+      struct task_struct *t= list_entry(pos, struct task_struct, list);
+      list_del(&(t->list));
+      update_process_state_rr(t, &readyqueue);
+    }
+  }
+
+  //Reiniciem les dades del semàfor per invalidar-lo
+  s->sem_id = -1;
+  s->counter = 0;
+  s->owner = -1;
+
+  return 0;
+}

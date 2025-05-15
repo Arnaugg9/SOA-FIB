@@ -44,6 +44,18 @@ union task_union {
   unsigned long stack[KERNEL_STACK_SIZE];    /* pila de sistema, per procés */
 };
 
+//Struct dels semafors
+struct Semaphore {
+  int sem_id;     //id del semafor
+  int counter;    //Contador de threads que poden conviure al semafor
+  int owner;      //PID del procés que té el semafor
+  struct list_head queue;   //Cua de threads al semafor
+};
+
+//Vector amb tots els semafors del sistema
+#define NR_SEMAPHORES 30
+extern struct Semaphore semaphores[NR_SEMAPHORES];
+
 extern union task_union protected_tasks[NR_TASKS+2];
 extern union task_union *task; /* Vector de tasques */
 extern struct task_struct *idle_task;
@@ -89,5 +101,7 @@ int needs_sched_rr();
 void update_sched_data_rr();
 
 void init_stats(struct stats *s);
+
+void init_semaphores();
 
 #endif  /* __SCHED_H__ */

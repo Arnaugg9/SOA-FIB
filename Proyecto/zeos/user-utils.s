@@ -188,3 +188,56 @@ nok:
  js nok
  popl %ebp
  ret
+
+
+.globl sem_init; .type sem_init, @function; .align 0; sem_init:
+ pushl %ebp
+ movl %esp, %ebp
+ pushl %ebx
+ movl 0x8(%ebp), %ebx
+ movl $14, %eax
+ call syscall_sysenter
+ popl %ebx
+ test %eax, %eax
+ js nok
+ popl %ebp
+ ret
+
+.globl sem_wait; .type sem_wait, @function; .align 0; sem_wait:
+ pushl %ebp
+ movl %esp, %ebp
+ pushl %ebx
+ movl 0x8(%ebp), %ebx
+ movl $15, %eax
+ call syscall_sysenter
+ popl %ebx
+ test %eax, %eax
+ js nok
+ popl %ebp
+ ret
+
+.globl sem_post; .type sem_post, @function; .align 0; sem_post:
+ pushl %ebp
+ movl %esp, %ebp
+ pushl %ebx
+ movl 0x8(%ebp), %ebx
+ movl $16, %eax
+ call syscall_sysenter
+ popl %ebx
+ test %eax, %eax
+ js nok
+ popl %ebp
+ ret
+
+.globl sem_destroy; .type sem_destroy, @function; .align 0; sem_destroy:
+ pushl %ebp
+ movl %esp, %ebp
+ pushl %ebx
+ movl 0x8(%ebp), %ebx
+ movl $17, %eax
+ call syscall_sysenter
+ popl %ebx
+ test %eax, %eax
+ js nok
+ popl %ebp
+ ret
