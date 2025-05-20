@@ -22,6 +22,7 @@ char char_map2[] =
 };
 
 char keyboard[128];
+unsigned short* screen;
 
 int pid;
 
@@ -217,7 +218,7 @@ void *sem_thread(void *arg) {
     write(1, buff, 1);
     write(1, "\n", 1);
     
-    pause(50000);
+    pause(13000);
 
     write(1, "Thread leaving critical section: ", 33);
     write(1, buff, 1);
@@ -236,7 +237,7 @@ void test_semaphores() {
 
   sem_id = sem_init(1); // inicializa con valor 1 (mutex)
   if (sem_id < 0) {
-    write(1, "Failed to initialize semaphore\n", 31);
+    perror();
     return;
   }
 
@@ -245,7 +246,7 @@ void test_semaphores() {
 
   for (int i = 0; i < 3; ++i) {
     if (clone(CLONE_THREAD, sem_thread, &ids[i], 2048) < 0) {
-      write(1, "Failed to create thread\n", 24);
+      perror();
     }
     pause(10); // Pequeño delay para mezclar la ejecución
   }
@@ -256,12 +257,94 @@ void test_semaphores() {
 
   // Destruye el semáforo
   if (sem_destroy(sem_id) != 0) {
-    write(1, "Failed to destroy semaphore\n", 28);
+    perror();
   } else {
     write(1, "Semaphore destroyed successfully\n", 33);
   }
 
   write(1, "--- End of Semaphore Test ---\n\n", 32);
+}
+
+void put_char(int x, int y, char c, int color) {
+  if (x < 0 || x >= 80 || y < 0 || y >= 25) return;
+  screen[y * 80 + x] = (color << 8) | c;
+}
+
+void print_str(int x, int y, const char* str, int color) {
+  while (*str) {
+      put_char(x++, y, *str++, color);
+  }
+}
+
+void draw_title_screen() {
+  int y = 3;
+
+  // Limpiar pantalla
+  for (int i = 0; i < 80 * 25; ++i) {
+      screen[i] = (0x0 << 8) | ' ';
+  }
+
+  // 1. TÍTOL PACMAN
+  print_str(20, y++, "______  ___  _____ ___  ___  ___   _   _ ", 0xE);
+  print_str(20, y++, "| ___ \\/ _ \\/  __ \\|  \\/  | / _ \\ | \\ | |", 0xE);
+  print_str(20, y++, "| |_/ / /_\\ \\ /  \\/| .  . |/ /_\\ \\|  \\| |", 0xE);
+  print_str(20, y++, "|  __/|  _  | |    | |\\/| ||  _  || . ` |", 0xE);
+  print_str(20, y++, "| |   | | | | \\__/\\| |  | || | | || |\\  |", 0xE);
+  print_str(20, y++, "\\_|   \\_| |_/\\____/\\_|  |_/\\_| |_/\\_| \\_/", 0xE);
+
+  y++; 
+
+  // 2. Subtitol
+  print_str(33, y++, "Zeos ver.", 0xE);
+
+  y += 2; 
+
+  // 3. ASCII ART de PACMAN
+  print_str(30, y++, "  .--.", 0xF);                   
+  print_str(29, y++, " / _.-' .-.  .-.  .-.  .-.  .-. ", 0xF);
+  print_str(28, y++, "|  '-. '-'  '-'  '-'  '-'  '-' ", 0xF);
+  print_str(29, y++, " \\__.'", 0xF);
+
+  y += 3;
+
+  // 4. Noms i curs
+  print_str(34, y++, "Roger Cot", 0x7);
+  print_str(33, y++, "Arnau Garcia", 0x7);
+  print_str(34, y++, "SOA 2025", 0x7);
+}
+
+//defines pel control del joc
+#define MENU_SCENE 0
+#define GAME_SCENE 1
+#define GAMEOVER_SCENE 2
+#define WIN_SCENE 3
+
+#define KEY_N 49
+#define KEY_W 17
+#define KEY_A 30
+#define KEY_S 31
+#define KEY_D 32
+int current_scene = MENU_SCENE;
+int pacman_pos_x = 30;
+void game_status_thread() {
+
+  draw_title_screen(screen);
+
+  while (1) {
+    if (current_scene == MENU_SCENE) {
+      getpid();     //Si no el poso no detecta mai el canvi d'escena?
+      //draw_title_screen(screen);
+      //if (keyboard[KEY_N] == 1) ++current_scene;
+    }
+    else if (current_scene == GAME_SCENE) {
+      for (int i = 0; i < 80 * 25; ++i) {
+        write(1, "change scene\n", 13);
+        for (int i = 0; i < 80 * 25; ++i) {
+          screen[i] = ' ';
+      }
+      }
+    }
+  }
 }
 
 int __attribute__ ((__section__(".text.main")))
@@ -273,7 +356,7 @@ int __attribute__ ((__section__(".text.main")))
   for (int i = 0; i < 128; ++i) keyboard[i] = 0;
   write(1, "\nHello!\n", 8);
 
-  unsigned short* screen = (unsigned short*)StartScreen();
+  screen = (unsigned short*)StartScreen();
   if (screen == (void*)-1) perror("Error al acceder a la pantalla");
   else {
     for (int i = 0; i < 80 * 25; ++i) {
@@ -281,6 +364,17 @@ int __attribute__ ((__section__(".text.main")))
     }
   }
 
+  /*
+  int val = 0;
+  clone(CLONE_THREAD, game_status_thread,  &val, 2048);
+  */
+ for (int i = 0; i < 12; ++i) {
+    int id = fork();
+    if (id < 0) perror();
+    test_semaphores();
+    if (id == 0) exit();
+ }
+  
 
   //test_simple_clone();
   //test_multiple_threads();
@@ -289,7 +383,7 @@ int __attribute__ ((__section__(".text.main")))
   // thread hace fork
   //test_clone_and_fork();
 
-  test_semaphores();
+  //test_semaphores();
 
 
 /*
@@ -314,6 +408,10 @@ int __attribute__ ((__section__(".text.main")))
 */
 
 while(1) {
-  ;
+  if (GetKeyboardState(keyboard) < 0) perror();
+  if (current_scene == MENU_SCENE) {
+    if (keyboard[KEY_N] == 1) ++current_scene;
+  }
+  pause(1000);
 }
 }

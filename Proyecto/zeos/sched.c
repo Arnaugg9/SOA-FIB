@@ -180,9 +180,9 @@ void init_idle (void)
   c->main_thread = c;
   INIT_LIST_HEAD(&c->threads_list);
   INIT_LIST_HEAD(&c->sibling);
-  allocate_DIR(c);
 
   allocate_DIR(c);
+
 
   uc->stack[KERNEL_STACK_SIZE-1]=(unsigned long)&cpu_idle; /* Return address */
   uc->stack[KERNEL_STACK_SIZE-2]=0; /* register ebp */
@@ -215,6 +215,11 @@ void init_task1(void)
   INIT_LIST_HEAD(&c->threads_list);
   INIT_LIST_HEAD(&c->sibling);
   remaining_quantum=c->total_quantum;
+
+  for(int i = 0; i < NR_SEMAPHORES; ++i) {
+    semaphores[0][i].owner = c->PID;
+  }
+  c->semaphores = &(semaphores[0][0]);
 
   init_stats(&c->p_stats);
 
@@ -252,7 +257,6 @@ void init_sched()
   //Inicialització del vector keys
   for (int i = 0; i < 128; ++i) keys[i] = 0;
 
-  //Inicialització del vector de semafors
   init_semaphores();
 }
 
@@ -293,9 +297,11 @@ void force_task_switch()
 }
 
 void init_semaphores() {
-  for (int i = 0; i < NR_SEMAPHORES; ++i) {
-    semaphores[i].sem_id = -1;
-    semaphores[i].counter = 0;
-    semaphores[i].owner = -1;
-  }
+  for (int i = 0; i < NR_TASKS; ++i) {
+    for (int j = 0; j < NR_SEMAPHORES; ++j) {
+      semaphores[i][j].sem_id = -1;
+      semaphores[i][j].counter = 0;
+      semaphores[i][j].owner = -1;
+    }
+}
 }
