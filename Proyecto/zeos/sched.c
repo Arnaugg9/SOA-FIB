@@ -216,10 +216,8 @@ void init_task1(void)
   INIT_LIST_HEAD(&c->sibling);
   remaining_quantum=c->total_quantum;
 
-  for(int i = 0; i < NR_SEMAPHORES; ++i) {
-    semaphores[0][i].owner = c->PID;
-  }
-  c->semaphores = &(semaphores[0][0]);
+  c->p_semaphores = &(semaphores[0]);
+  c->p_semaphores->owner = c->PID;
 
   init_stats(&c->p_stats);
 
@@ -298,10 +296,10 @@ void force_task_switch()
 
 void init_semaphores() {
   for (int i = 0; i < NR_TASKS; ++i) {
+    semaphores[i].owner = -1;
     for (int j = 0; j < NR_SEMAPHORES; ++j) {
-      semaphores[i][j].sem_id = -1;
-      semaphores[i][j].counter = 0;
-      semaphores[i][j].owner = -1;
+      semaphores[i].sem[j].sem_id = -1;
+      semaphores[i].sem[j].counter = 0;
     }
 }
 }

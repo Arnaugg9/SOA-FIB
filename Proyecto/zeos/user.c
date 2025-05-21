@@ -226,7 +226,7 @@ void *sem_thread(void *arg) {
 
     sem_post(sem_id);
   } else {
-    write(1, "Thread failed to acquire semaphore\n", 34);
+    perror();
   }
 
   pthread_exit();
@@ -265,6 +265,102 @@ void test_semaphores() {
   write(1, "--- End of Semaphore Test ---\n\n", 32);
 }
 
+
+
+
+
+
+
+
+
+
+/////////// CODI PEL JOC //////////////
+//defines pel control del joc
+#define NUM_COL 80
+
+#define KEY_N 49
+#define KEY_W 17
+#define KEY_A 30
+#define KEY_S 31
+#define KEY_D 32
+
+#define COLOR_WHITE 0x7
+#define COLOR_DARK_BLUE 0x1
+#define COLOR_LIGHT_BLUE 0x9
+#define COLOR_RED 0xC
+#define COLOR_CYAN 0x3
+#define COLOR_GREEN 0xA
+#define COLOR_YELLOW 0xE
+#define COLOR_DARK_YELLOW 0x6
+#define COLOR_WHITE 0x7
+
+#define PACMAN_INIT_POS_X 40
+#define PACMAN_INIT_POS_Y 14
+
+#define FIXED_UPDATE_TICKS 80
+
+//Structs d'objectes
+enum scenes {MENU_SCENE, GAME_SCENE, GAMEOVER_SCENE, WIN_SCENE};
+enum directions {NONE, LEFT, RIGHT, UP, DOWN};
+enum ghost_states {STOP, MOVE, VULNERABLE, DEAD};
+
+//Struct pel pacman i pels ghosts
+typedef struct {
+  //Caracteristiques comunes
+  int pos_x, pos_y;
+  int dir;
+  char character;
+  int color;
+  //Caracteristiques úniques dels ghosts
+  int state;
+  int respawn_timer;
+} Entity;
+
+//Variables
+//char keyboard[128];         --> Definits a dalt, s'utilitzen en altres tests
+//unsigned short* screen;
+int sem_game;
+
+//Variables d'entitats del joc
+Entity pacman;
+Entity ghosts[4];
+
+//Variables GameState
+int current_scene;
+int points;
+char map[24][80] = {
+  "                                                                                ",
+  "                                                                                ",
+  "                                                                                ",
+  "            #######################################################             ",
+  "            #######################################################             ",
+  "            ### o o o o o o o o o o o ### o o o o o o o o o o o ###             ",
+  "            ### o ####### o ####### o ### o ####### o ####### o ###             ",
+  "            ### $ ####### o ####### o ### o ####### o ####### $ ###             ",
+  "            ### o o o o o o o o o o o o o o o o o o o o o o o o ###             ",
+  "            ### o ####### o ##### o o o o o o ##### o ####### o ###             ",
+  "            ### o ####### o ##### o o o o o o ##### o ####### o ###             ",
+  "            ### o o o o o o o o o o o o o o o o o o o o o o o o ###             ",
+  "            ############# o ####### o ####### o ####### o #########             ",
+  "            ############# o ####### o ####### o ####### o #########             ",
+  "            ### o o o o o o o o o o o o o o o o o o o o o o o o ###             ",
+  "            ### $ ######### o ######### o ####### o ######### $ ###             ",
+  "            ### o ######### o ######### o ####### o ######### o ###             ",
+  "            ### o o o o o o o o o o o o o o o o o o o o o o o o ###             ",
+  "            #######################################################             ",
+  "            #######################################################             ",
+  "                                                                                ",
+  "                                                                                ",
+  "                                                                                ",
+  "                                                                                "
+};
+unsigned short back_buffer[25*80];
+
+//Variables per controlar velocitat joc
+int ticks_passed;
+int ticks_last_time;
+
+
 void put_char(int x, int y, char c, int color) {
   if (x < 0 || x >= 80 || y < 0 || y >= 25) return;
   screen[y * 80 + x] = (color << 8) | c;
@@ -285,65 +381,296 @@ void draw_title_screen() {
   }
 
   // 1. TÍTOL PACMAN
-  print_str(20, y++, "______  ___  _____ ___  ___  ___   _   _ ", 0xE);
-  print_str(20, y++, "| ___ \\/ _ \\/  __ \\|  \\/  | / _ \\ | \\ | |", 0xE);
-  print_str(20, y++, "| |_/ / /_\\ \\ /  \\/| .  . |/ /_\\ \\|  \\| |", 0xE);
-  print_str(20, y++, "|  __/|  _  | |    | |\\/| ||  _  || . ` |", 0xE);
-  print_str(20, y++, "| |   | | | | \\__/\\| |  | || | | || |\\  |", 0xE);
-  print_str(20, y++, "\\_|   \\_| |_/\\____/\\_|  |_/\\_| |_/\\_| \\_/", 0xE);
+  print_str(20, y++, "______  ___  _____ ___  ___  ___   _   _ ", COLOR_YELLOW);
+  print_str(20, y++, "| ___ \\/ _ \\/  __ \\|  \\/  | / _ \\ | \\ | |", COLOR_YELLOW);
+  print_str(20, y++, "| |_/ / /_\\ \\ /  \\/| .  . |/ /_\\ \\|  \\| |", COLOR_YELLOW);
+  print_str(20, y++, "|  __/|  _  | |    | |\\/| ||  _  || . ` |", COLOR_YELLOW);
+  print_str(20, y++, "| |   | | | | \\__/\\| |  | || | | || |\\  |", COLOR_YELLOW);
+  print_str(20, y++, "\\_|   \\_| |_/\\____/\\_|  |_/\\_| |_/\\_| \\_/", COLOR_YELLOW);
 
   y++; 
 
   // 2. Subtitol
-  print_str(33, y++, "Zeos ver.", 0xE);
+  print_str(33, y++, "Zeos ver.", COLOR_YELLOW);
 
   y += 2; 
 
   // 3. ASCII ART de PACMAN
-  print_str(30, y++, "  .--.", 0xF);                   
-  print_str(29, y++, " / _.-' .-.  .-.  .-.  .-.  .-. ", 0xF);
-  print_str(28, y++, "|  '-. '-'  '-'  '-'  '-'  '-' ", 0xF);
-  print_str(29, y++, " \\__.'", 0xF);
+  print_str(24, y++, "   .--.", COLOR_WHITE);                   
+  print_str(24, y++, "  / _.-' .-.  .-.  .-.  .-.  .-. ", COLOR_WHITE);
+  print_str(24, y++, " |  '-.  '-'  '-'  '-'  '-'  '-' ", COLOR_WHITE);
+  print_str(24, y++, "  \\__.'", COLOR_WHITE);
 
   y += 3;
 
   // 4. Noms i curs
-  print_str(34, y++, "Roger Cot", 0x7);
-  print_str(33, y++, "Arnau Garcia", 0x7);
-  print_str(34, y++, "SOA 2025", 0x7);
+  print_str(34, y++, "Roger Cot", COLOR_WHITE);
+  print_str(33, y++, "Arnau Garcia", COLOR_WHITE);
+  print_str(34, y++, "SOA 2025", COLOR_WHITE);
 }
 
-//defines pel control del joc
-#define MENU_SCENE 0
-#define GAME_SCENE 1
-#define GAMEOVER_SCENE 2
-#define WIN_SCENE 3
+void draw_win_screen() {
+  int y = 4;
 
-#define KEY_N 49
-#define KEY_W 17
-#define KEY_A 30
-#define KEY_S 31
-#define KEY_D 32
-int current_scene = MENU_SCENE;
-int pacman_pos_x = 30;
-void game_status_thread() {
+  // Limpiar pantalla
+  for (int i = 0; i < 80 * 25; ++i) {
+      screen[i] = (0x0 << 8) | ' ';
+  }
 
-  draw_title_screen(screen);
+  print_str(2, y++, " _____                             _         _       _   _                 ", COLOR_YELLOW);
+  print_str(2, y++, "/  __ \\                           | |       | |     | | (_)                ", COLOR_YELLOW);
+  print_str(2, y++, "| /  \\/ ___  _ __   __ _ _ __ __ _| |_ _   _| | __ _| |_ _  ___  _ __  ___ ", COLOR_YELLOW);
+  print_str(2, y++, "| |    / _ \\| '_ \\ / _` | '__/ _` | __| | | | |/ _` | __| |/ _ \\| '_ \\/ __|", COLOR_YELLOW);
+  print_str(2, y++, "| \\__/\\ (_) | | | | (_| | | | (_| | |_| |_| | | (_| | |_| | (_) | | | \\__ \\", COLOR_YELLOW);
+  print_str(2, y++, " \\____/\\___/|_| |_|\\__, |_|  \\__,_|\\__|\\__,_|_|\\__,_|\\__|_|\\___/|_| |_|___/", COLOR_YELLOW);
+  print_str(2, y++, "                    __/ |                                                  ", COLOR_YELLOW);
+  print_str(2, y++, "                   |___/                                                   ", COLOR_YELLOW);
 
-  while (1) {
+  y++; 
+  y++;
+
+  print_str(20, y++, "__   __            _    _             ", COLOR_LIGHT_BLUE);
+  print_str(20, y++, "\\ \\ / /           | |  | |            ", COLOR_LIGHT_BLUE);
+  print_str(20, y++, " \\ V /___  _   _  | |  | | ___  _ __  ", COLOR_LIGHT_BLUE);  
+  print_str(20, y++, "  \\ // _ \\| | | | | |/\\| |/ _ \\| '_ \\ ", COLOR_LIGHT_BLUE);  
+  print_str(20, y++, "  | | (_) | |_| | \\  /\\  / (_) | | | |", COLOR_LIGHT_BLUE);  
+  print_str(20, y++, "  \\_/\\___/ \\__,_|  \\/  \\/ \\___/|_| |_|", COLOR_LIGHT_BLUE);  
+}
+
+void draw_game_over_screen() {
+  int y = 4;
+
+  // Limpiar pantalla
+  for (int i = 0; i < 80 * 25; ++i) {
+      screen[i] = (0x0 << 8) | ' ';
+  }
+
+  print_str(14, y++, " _____                        _____                ", COLOR_RED);
+  print_str(14, y++, "|  __ \\                      |  _  |               ", COLOR_RED);
+  print_str(14, y++, "| |  \\/ __ _ _ __ ___   ___  | | | |_   _____ _ __ ", COLOR_RED);
+  print_str(14, y++, "| | __ / _` | '_ ` _ \\ / _ \\ | | | \\ \\ / / _ \\ '__|", COLOR_RED);
+  print_str(14, y++, "| |_\\ \\ (_| | | | | | |  __/ \\ \\_/ /\\ V /  __/ |   ", COLOR_RED);
+  print_str(14, y++, " \\____/\\__,_|_| |_| |_|\\___|  \\___/  \\_/ \\___|_|   ", COLOR_RED);
+
+
+  y++; 
+  y++;
+
+  print_str(16, y++, " _____             ___              _       ", COLOR_WHITE);
+  print_str(16, y++, "|_   _|           / _ \\            (_)      ", COLOR_WHITE);
+  print_str(16, y++, "  | |_ __ _   _  / /_\\ \\ __ _  __ _ _ _ __  ", COLOR_WHITE);
+  print_str(16, y++, "  | | '__| | | | |  _  |/ _` |/ _` | | '_ \\ ", COLOR_WHITE);
+  print_str(16, y++, "  | | |  | |_| | | | | | (_| | (_| | | | | |", COLOR_WHITE);
+  print_str(16, y++, "  \\_/_|   \\__, | \\_| |_/\\__, |\\__,_|_|_| |_|", COLOR_WHITE);
+  print_str(16, y++, "           __/ |         __/ |              ", COLOR_WHITE);
+  print_str(16, y++, "          |___/         |___/               ", COLOR_WHITE);
+
+}
+
+//Comprova si la posició es vàlida, 1 si ho es, 0 altrament (Les posicions no valides son les pareds)
+int  can_move(int x, int y) {
+  return map[y][x] != '#';
+}
+
+void move_entity(Entity *entity) {
+  switch (entity->dir)
+  {
+  case LEFT:
+    if (can_move(entity->pos_x - 2, entity->pos_y)) {
+      entity->pos_x -= 2;
+    }
+    break;
+
+  case RIGHT:
+    if (can_move(entity->pos_x + 2, entity->pos_y)) {
+      entity->pos_x += 2;
+    }
+    break;
+  
+  case UP:
+    if (can_move(entity->pos_x, entity->pos_y - 1)) {
+      entity->pos_y -= 1;
+    }
+    break;
+
+  case DOWN:
+    if (can_move(entity->pos_x, entity->pos_y + 1)) {
+      entity->pos_y += 1;
+    }
+    break;
+
+  default:
+    break;
+  }
+}
+
+void updateGame() {
+  //Movem al Pacman
+  move_entity(&pacman);
+
+  //Comprobar si hi ha punts en la nova posicio del pacman
+  if (map[pacman.pos_y][pacman.pos_x] == 'o') {
+    ++points;
+    map[pacman.pos_y][pacman.pos_x] = ' ';
+  }
+  else if (map[pacman.pos_y][pacman.pos_x] == '$') {
+    ++points;
+    map[pacman.pos_y][pacman.pos_x] = ' ';
+    //activate_powerup();
+  }
+
+  //Movem als fantasmes
+
+
+  if (points >= 168) current_scene = WIN_SCENE;
+}
+
+void renderGame() {
+  //Render map -> En el buffer auxiliar
+  int idx = NUM_COL;
+  int color = COLOR_WHITE;
+  for (int i = 0; i < 24; ++i) {
+    for (int j = 0; j < 80; ++j) {
+      if (map[i][j] == '#') color = COLOR_DARK_BLUE;  //Blau pels murs
+      else if (map[i][j] == '$') color = COLOR_CYAN;  //Cian per powerup
+      else color = COLOR_WHITE;                       //Blanc resta
+      back_buffer[idx++] = color << 8 | map[i][j];  
+    }
+  }
+
+  //Render Entities -> En el buffer auxiliar
+  idx = NUM_COL + pacman.pos_y * NUM_COL + pacman.pos_x;
+  back_buffer[idx] = pacman.color << 8 | pacman.character;
+  
+  for (int i = 0; i < 4; ++i) {
+    idx = NUM_COL + ghosts[i].pos_y * NUM_COL + ghosts[i].pos_x;
+    back_buffer[idx] = ghosts[i].color <<8 | ghosts[i].character;
+  }
+
+
+  //Draw the auxiliar buffer
+  for (int i = 0; i < 24*80; ++i) {
+    screen[i] = back_buffer[i];
+  }
+}
+
+void init_game() {
+  current_scene = MENU_SCENE;
+
+  draw_title_screen();
+
+  //Block no está implementado -> Seria útil
+  while(current_scene == MENU_SCENE) {
+    getpid();
+  }
+
+  ticks_passed = 0;
+  ticks_last_time = gettime();
+
+  //Borrem pantalla
+  for (int i = 0; i < 80 * 25; ++i) {
+    screen[i] = ' ';
+  }
+
+  //Inicialitzem Entities
+    //Pacman
+  pacman.character = '@';
+  pacman.color = COLOR_YELLOW;
+  pacman.dir = NONE;
+  pacman.pos_x = PACMAN_INIT_POS_X;
+  pacman.pos_y = PACMAN_INIT_POS_Y;
+
+    //Ghosts
+  for (int i = 0; i < 4; ++i) {
+    ghosts[i].character = 'X';
+    ghosts[i].state = STOP;
+    ghosts[i].respawn_timer = 0;
+    ghosts[i].dir = NONE;
+  }
+
+  ghosts[0].color = COLOR_RED;
+  ghosts[0].pos_x = 26;
+  ghosts[0].pos_y = 5;
+
+  ghosts[1].color = COLOR_LIGHT_BLUE;
+  ghosts[1].pos_x = 52;
+  ghosts[1].pos_y = 5;
+
+  ghosts[2].color = COLOR_DARK_YELLOW;
+  ghosts[2].pos_x = 16;
+  ghosts[2].pos_y = 17;
+
+  ghosts[3].color = COLOR_GREEN;
+  ghosts[3].pos_x = 62;
+  ghosts[3].pos_y = 17;
+  //Inicialitzem GameState
+  points = 0;
+
+  while (current_scene == GAME_SCENE) {
+    int current_time = gettime();
+    ticks_passed += current_time - ticks_last_time;
+    ticks_last_time = current_time;
+
+    if (ticks_passed >= FIXED_UPDATE_TICKS) {
+      ticks_passed = 0;
+      sem_wait(sem_game);
+      updateGame();
+      sem_post(sem_game);
+    }
+
+    sem_wait(sem_game);
+    renderGame();
+    sem_post(sem_game);
+    //pause(100);
+  }
+
+  if (current_scene == WIN_SCENE) {  
+    draw_win_screen();
+  }
+
+  while (1) {;}
+}
+
+void read_keyboard_thread() {
+  while(1) {
+    sem_wait(sem_game);
+
+    if (GetKeyboardState(keyboard) < 0) perror();
+
     if (current_scene == MENU_SCENE) {
-      getpid();     //Si no el poso no detecta mai el canvi d'escena?
-      //draw_title_screen(screen);
-      //if (keyboard[KEY_N] == 1) ++current_scene;
+      for (int i = 0; i < 128; ++i) {
+        if (keyboard[i] == 1) {
+          ++current_scene;
+          break;
+        }
+      }
     }
     else if (current_scene == GAME_SCENE) {
-      for (int i = 0; i < 80 * 25; ++i) {
-        write(1, "change scene\n", 13);
-        for (int i = 0; i < 80 * 25; ++i) {
-          screen[i] = ' ';
+      if (keyboard[KEY_W] == 1) {
+        pacman.dir = UP;
       }
+      else if (keyboard[KEY_S] == 1) {
+        pacman.dir = DOWN;
+      }
+      else if (keyboard[KEY_A] == 1) {
+        pacman.dir = LEFT;
+      }
+      else if (keyboard[KEY_D] == 1) {
+        pacman.dir = RIGHT;
       }
     }
+    else if (current_scene == GAMEOVER_SCENE || current_scene == WIN_SCENE) {
+      for (int i = 0; i < 128; ++i) {
+        if (keyboard[i] == 1) {
+          current_scene = MENU_SCENE;
+          break;
+        }
+      }
+    }
+      
+
+    sem_post(sem_game);
+    pause(1000);
   }
 }
 
@@ -355,7 +682,7 @@ int __attribute__ ((__section__(".text.main")))
 
   for (int i = 0; i < 128; ++i) keyboard[i] = 0;
   write(1, "\nHello!\n", 8);
-
+/*
   screen = (unsigned short*)StartScreen();
   if (screen == (void*)-1) perror("Error al acceder a la pantalla");
   else {
@@ -364,17 +691,32 @@ int __attribute__ ((__section__(".text.main")))
     }
   }
 
-  /*
-  int val = 0;
-  clone(CLONE_THREAD, game_status_thread,  &val, 2048);
-  */
- for (int i = 0; i < 12; ++i) {
-    int id = fork();
-    if (id < 0) perror();
-    test_semaphores();
-    if (id == 0) exit();
- }
+  sem_game = sem_init(1); 
+  if (sem_game < 0) {
+      write(1, "Error initializing semaphore\n", 30);
+      return -1;
+  }
   
+  //Creamos el thread auxiliar que controlará el juego
+  int tid1 = clone(CLONE_THREAD, init_game, 0, 1024);
+  if (tid1 < 0) {
+      perror();
+      sem_destroy(sem_game);
+      return -1;
+  }
+
+  //Thread principal lee el teclado();
+  read_keyboard_thread();
+*/
+  
+    for (int i = 0; i < 12; ++i) {
+        int id = fork();
+        if (id < 0) perror();
+        if (id > 0) test_semaphores();
+        if (id == 0) exit();
+    }
+    write(1, "\nFINISHED\n", 10);
+    while(1);
 
   //test_simple_clone();
   //test_multiple_threads();
@@ -382,8 +724,6 @@ int __attribute__ ((__section__(".text.main")))
 
   // thread hace fork
   //test_clone_and_fork();
-
-  //test_semaphores();
 
 
 /*
@@ -407,11 +747,4 @@ int __attribute__ ((__section__(".text.main")))
   }
 */
 
-while(1) {
-  if (GetKeyboardState(keyboard) < 0) perror();
-  if (current_scene == MENU_SCENE) {
-    if (keyboard[KEY_N] == 1) ++current_scene;
-  }
-  pause(1000);
-}
 }
