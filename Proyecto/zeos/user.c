@@ -887,8 +887,8 @@ void game_thread() {
     //PREGUNTAR: Habria que asegurar que se dumpea la pantalla (si pones pause no se dibuja nunca) -> Dura poco en ejecucion y pause no lo hace
       //Puedo poner el dump_screen en la rutina de pause? Para asegurar que se hace -> SOlucionaria tambien el siguiente problema
     while(current_scene == MENU_SCENE) {
-      //pause(1000);
-      getpid();
+      pause(1000);
+      //getpid();
     }
 
     init_game();
@@ -926,8 +926,8 @@ void game_thread() {
 
     //PREGUNTAR: Si no poso això no fa el dump_screen (no es veu ultim frame del joc), es bloqueja abans de fer la interrupcio
     int i =0;
-    while (++i < 1000000) getpid();
-    //pause(50000);
+    //while (++i < 1000000) getpid();
+    pause(15000);
 
     if (current_scene == WIN_SCENE) {  
       draw_win_screen();
@@ -940,8 +940,8 @@ void game_thread() {
 
     //PREGUNTAR: Lo mismo
     while (current_scene != MENU_SCENE) {
-      getpid();
-      //pause(100)
+      //getpid();
+      pause(100);
     }
   }
 }
